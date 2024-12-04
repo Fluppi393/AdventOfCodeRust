@@ -1,5 +1,6 @@
 mod day1;
 mod day2;
+mod day3;
 
 use std::fs::File;
 use std::io::{self, BufReader};
@@ -8,7 +9,7 @@ use chrono::Datelike;
 
 fn main() -> io::Result<()> {
     let mut day = chrono::offset::Local::now().day();
-   // day = 2;
+   day = 3;
 
     for i in 0..2 {
         let is_test = i == 0;
@@ -20,6 +21,7 @@ fn main() -> io::Result<()> {
         let result = match day {
             1 => day1::main(reader),
             2 => day2::main(reader),
+            3 => day3::main(reader),
             _ => ("Not implemented".to_string(), "Not implemented".to_string()),
         };
 
