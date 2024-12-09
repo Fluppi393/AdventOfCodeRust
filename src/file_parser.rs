@@ -1,29 +1,69 @@
 use std::fs::File;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Write};
 
-pub struct StringParser {
-    string: String,
-    index: usize
+pub struct FileParser {
+    lines: std::io::Lines<BufReader<File>>,
+    cur_line: String,
+    char_idx: usize,
 }
 
-impl StringParser {
-    pub fn new(string: &str) -> StringParser {
-        StringParser {
-            string: string.to_string(),
-            index: 0
+impl FileParser {
+    pub fn new(filename: &str) -> FileParser {
+        let file = File::open(filename).unwrap();
+        let reader = BufReader::new(file);
+        let lines = reader.lines();
+        let cur_line = "".to_string();
+
+        FileParser {
+            lines,
+            cur_line,
+            char_idx: 0,
         }
     }
 
-    pub fn is_done(&self) -> bool {
-        self.index >= self.string.len()
+    pub fn inline(input: &str) -> FileParser {
+        // Create a temporary file
+        let filename = "input/temp.txt";
+        let mut temp_file = File::create(filename).unwrap();
+        // Write test data to the temporary file
+        temp_file.write_all(input.as_bytes()).unwrap();
+        FileParser::new(filename)
+    }
+
+    pub fn next_line(&mut self) -> bool {
+        match self.lines.next() {
+            Some(line) => {
+                self.cur_line = line.unwrap();
+                self.char_idx = 0;
+                !self.is_line_done()
+            }
+            None => false,
+        }
+    }
+
+    pub fn next_char(&mut self) -> bool {
+        self.char_idx = self.char_idx + 1;
+        !self.is_line_done()
+    }
+
+    pub fn next_char_or_line(&mut self) -> bool {
+        if !self.next_char() {
+            self.next_line()
+        } else {
+            true
+        }
+    }
+
+    pub fn is_line_done(&self) -> bool {
+        self.char_idx >= self.cur_line.len()
     }
 
     pub fn skip(&mut self) {
-        self.index += 1;
+        self.char_idx += 1;
     }
 
     pub fn get_char(&self, offset: usize) -> Option<char> {
-        self.string.chars().nth(self.index + offset)
+        self.cur_line.chars().nth(self.char_idx + offset)
     }
 
     pub fn is_char(&self, c: char) -> bool {
@@ -34,20 +74,22 @@ impl StringParser {
         self.get_char(0)
     }
 
-    pub fn skip_num(&mut self, num: usize) -> bool
-    {
-        if num > 0 && self.index + num <= self.string.len() {
-            self.index += num;
+    pub fn skip_num(&mut self, num: usize) -> bool {
+        if num > 0 && self.char_idx + num <= self.cur_line.len() {
+            self.char_idx += num;
             return true;
         }
 
         false
     }
 
-    pub fn consume_num(&mut self, num: usize) -> Option<String>
-    {
+    pub fn skip_to_line_end(&mut self) -> bool {
+        self.skip_num(self.cur_line.len() - self.char_idx)
+    }
+
+    pub fn consume_num(&mut self, num: usize) -> Option<String> {
         if self.skip_num(num) {
-            return Some(self.string[self.index - num..self.index].to_string());
+            return Some(self.cur_line[self.char_idx - num..self.char_idx].to_string());
         }
 
         None
@@ -58,7 +100,7 @@ impl StringParser {
         F: Fn(char) -> bool,
     {
         let mut num = 0;
-        while self.get_next_char().map(|c| predicate(c)).is_some() {
+        while self.get_char(num).map_or(false, |c| predicate(c)) {
             num += 1;
         }
 
@@ -71,8 +113,12 @@ impl StringParser {
         F: Fn(char) -> bool,
     {
         let num = self.count_by_predicate(predicate);
-        self.index += num;
+        self.char_idx += num;
         num
+    }
+
+    pub fn skip_whitespace(&mut self) -> usize {
+        self.skip_by_predicate(|c| c.is_whitespace())
     }
 
     // Returns a string of all adjacent characters that match a certain predicate
@@ -111,33 +157,39 @@ impl StringParser {
     }
 
     pub fn consume_string(&mut self, to_find: &str) -> bool {
-        self.skip_num(if self.is_string(to_find) { to_find.len() } else { 0 })
+        self.skip_num(if self.is_string(to_find) {
+            to_find.len()
+        } else {
+            0
+        })
     }
-
 
     pub fn count_numeric(&self) -> usize {
         self.count_by_predicate(|c| c.is_numeric())
     }
+
     pub fn consume_i32(&mut self) -> Option<i32> {
-         self.consume_num(self.count_numeric()).map(|s| s.parse::<i32>().unwrap())
-    }
-}
-
-pub struct FileParser {
-    lines: std::io::Lines<BufReader<File>>
-}
-
-impl FileParser {
-    pub fn new(filename: &str) -> FileParser {
-        let file = File::open(filename).unwrap();
-        let reader = BufReader::new(file);
-        let lines = reader.lines();
-        FileParser {
-            lines
-        }
+        self.consume_num(self.count_numeric())
+            .map(|s| s.parse::<i32>().unwrap())
     }
 
-    pub fn parse_line(&mut self) -> Option<StringParser> {
-        self.lines.next().map(|line| StringParser::new(&line.unwrap()))
+    pub fn count_non_numeric(&self) -> usize {
+        self.count_by_predicate(|c| !c.is_numeric())
+    }
+
+    pub fn count_alphabetic(&self) -> usize {
+        self.count_by_predicate(|c| c.is_alphabetic())
+    }
+
+    pub fn consume_alphabetic(&mut self) -> Option<String> {
+        self.consume_num(self.count_alphabetic())
+    }
+
+    pub fn count_alphanumeric(&self) -> usize {
+        self.count_by_predicate(|c| c.is_alphanumeric())
+    }
+
+    pub fn consume_alphanumeric(&mut self) -> Option<String> {
+        self.consume_num(self.count_alphanumeric())
     }
 }
