@@ -1,10 +1,8 @@
-mod day3;
-mod day4;
-mod day5;
-mod day6;
-mod day7;
 mod file_parser;
 mod file_parser_tests;
+
+mod y2024;
+mod y2025;
 
 use std::io::{self};
 
