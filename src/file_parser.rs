@@ -153,6 +153,10 @@ impl FileParser {
         false
     }
 
+    pub fn consume_digit(&self) -> Option<u32> {
+        self.get_next_char().and_then(|c| c.to_digit(10))
+    }
+
     pub fn is_string(&self, to_find: &str) -> bool {
         let mut num = 0;
         while num < to_find.len() && self.get_char(num) == to_find.chars().nth(num) {
