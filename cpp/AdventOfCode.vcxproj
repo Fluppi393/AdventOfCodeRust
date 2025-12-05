@@ -163,6 +163,7 @@
         <ClInclude Include="vector_2d.h"/>
         <ClInclude Include="views.h"/>
         <ClInclude Include="y2025\day4.h"/>
+        <ClInclude Include="y2025\day5.h"/>
     </ItemGroup>
     <ItemGroup>
         <Content Include="y2025\day4_input.txt"/>

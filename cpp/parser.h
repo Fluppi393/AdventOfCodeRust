@@ -67,7 +67,7 @@ namespace aoc
         auto num_chars_left() const { return line_.end() - line_it_; }
 
         // Consumes the next character and returns it if available
-        std::optional<char> consume_char(auto&& predicate = default_predicate)
+        std::optional<char> consume_char(auto&& predicate)
         {
             const auto c = peek_char();
             if (c && predicate(c.value()))
@@ -77,6 +77,11 @@ namespace aoc
             }
 
             return std::nullopt;
+        }
+
+        auto consume_char()
+        {
+            return consume_char(default_predicate);
         }
 
         auto peek_char() const
@@ -94,6 +99,35 @@ namespace aoc
             return std::string_view(start, line_it_);
         }
 
+        // Consumes all consecutive digits and returns them as an int
+        template <typename T>
+        auto consume_int()
+        {
+            const auto string = consume_string([](const auto c)
+            {
+                return std::isdigit(c);
+            });
+
+            const auto chars = std::string(string);
+
+            if constexpr (std::is_same_v<T, int>)
+            {
+                return std::stoi(chars);
+            }
+            else if constexpr (std::is_same_v<T, unsigned int>)
+            {
+                return std::stoul(chars);
+            }
+            else if constexpr (std::is_same_v<T, long long>)
+            {
+                return std::stoll(chars);
+            }
+            else if constexpr (std::is_same_v<T, unsigned long long>)
+            {
+                return std::stoull(chars);
+            }
+        }
+
         // Builds a matrix by converting all characters
         template <typename T>
         auto build_matrix(auto&& transform)
@@ -108,7 +142,7 @@ namespace aoc
                 m.reserve(m.size() + get_line().length());
                 max_coord.x = 0;
 
-                while (const auto c = consume_char(default_predicate))
+                while (const auto c = consume_char())
                 {
                     m.push_back(transform(c.value()));
                     ++max_coord.x;
