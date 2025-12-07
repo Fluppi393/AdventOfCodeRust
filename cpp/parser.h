@@ -20,7 +20,6 @@ namespace aoc
     public:
         explicit Parser(const int year, const int day, const bool is_test)
         {
-            // TODO: Merge with utility.h
             const auto filename =
                 std::filesystem::current_path().parent_path() /
                 std::format("input/{}/day{}{}.txt", year, day, is_test ? "_test" : "");
