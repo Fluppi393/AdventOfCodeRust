@@ -1,8 +1,8 @@
-#include "y2025/day6.h"
+#include "y2025/day7.h"
 
 int main(int argc, char* argv[])
 {
-    aoc::assert_result(std::make_tuple(4277556ull, 3263827ull), aoc::day6::solve(true));
-    aoc::assert_result(std::make_tuple(4878670269096ull, 8674740488592ull), aoc::day6::solve(false));
+    aoc::assert_result(std::make_tuple(21ull, 40ull), aoc::day7::solve(true));
+    aoc::assert_result(std::make_tuple(1660ull, 0ull), aoc::day7::solve(false));
     return 0;
 }
