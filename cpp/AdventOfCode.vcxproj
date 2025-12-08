@@ -166,6 +166,7 @@
         <ClInclude Include="y2025\day5.h"/>
         <ClInclude Include="y2025\day6.h"/>
         <ClInclude Include="y2025\day7.h"/>
+        <ClInclude Include="y2025\day8.h"/>
     </ItemGroup>
     <ItemGroup>
         <Content Include="y2025\day4_input.txt"/>

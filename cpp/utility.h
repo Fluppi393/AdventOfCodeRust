@@ -6,6 +6,11 @@
 
 namespace aoc
 {
+    inline bool default_predicate(const char)
+    {
+        return true;
+    }
+
     inline auto load_input_file(const int year, const int day, const bool is_test)
     {
         const auto filename =
@@ -13,6 +18,62 @@ namespace aoc
             std::format("input/{}/day{}{}.txt", year, day, is_test ? "_test" : "");
 
         return std::ifstream(filename);
+    }
+
+    // Consumes the next character and returns it if available
+    std::optional<char> consume_char(auto&& first, auto&& last, auto&& predicate)
+    {
+        if (first != last && predicate(*first))
+        {
+            const auto c = *first;
+            ++first;
+            return c;
+        }
+
+        return std::nullopt;
+    }
+
+    auto consume_char(auto&& first, auto&& last)
+    {
+        return consume_char(first, last, default_predicate);
+    }
+
+    auto consume_string(auto&& first, auto&& last, auto&& predicate = default_predicate)
+    {
+        const auto start = first;
+        while (const auto c = consume_char(first, last, predicate))
+        {
+        }
+        return std::string_view(start, first);
+    }
+
+    // Consumes all consecutive digits and returns them as an int
+    template <typename T>
+    auto consume_int(auto&& first, auto&& last)
+    {
+        const auto string = consume_string(first, last, [](const auto c)
+        {
+            return std::isdigit(c);
+        });
+
+        const auto chars = std::string(string);
+
+        if constexpr (std::is_same_v<T, int>)
+        {
+            return std::stoi(chars);
+        }
+        else if constexpr (std::is_same_v<T, unsigned int>)
+        {
+            return std::stoul(chars);
+        }
+        else if constexpr (std::is_same_v<T, long long>)
+        {
+            return std::stoll(chars);
+        }
+        else if constexpr (std::is_same_v<T, unsigned long long>)
+        {
+            return std::stoull(chars);
+        }
     }
 
     inline auto index_to_coord(const int index, const Vector2D<int>& size)
