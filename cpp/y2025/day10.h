@@ -1,5 +1,8 @@
 #pragma once
 
+#include <future>
+#include <numeric>
+
 #include "../parser.h"
 #include "../views.h"
 
@@ -42,34 +45,55 @@ namespace aoc::day10
         return result;
     }
 
-    inline uint64_t count_joltages_rec(const std::vector<uint64_t>& joltage_requirements, const std::vector<std::vector<uint64_t>>& buttons, std::vector<uint64_t> state, const size_t index)
+    inline uint64_t count_joltages_rec(const std::vector<uint64_t>& joltage_requirements, const std::vector<std::vector<uint64_t>>& buttons, std::vector<uint64_t> state, const size_t button_index)
     {
-        auto presses = 0ull;
+        if (button_index == buttons.size())
+        {
+            // For leaf nodes we can just press the button the required number of times for a certain index and check if the others work out as well
+            const auto i = buttons[button_index][0];
+            const auto required_presses = joltage_requirements[i] - state[i];
+
+            for (const auto& index : buttons[button_index])
+            {
+                state[index] += required_presses;
+            }
+
+            return state == joltage_requirements ? required_presses : std::numeric_limits<uint64_t>::max();
+        }
+
+        // Start with pressing the button as often as possible and then decrement step by step
+        auto presses = std::ranges::min(buttons[button_index] | std::views::transform([&](const auto& i) { return joltage_requirements[i] - state[i]; }));
+        for (const auto& i : buttons[button_index])
+        {
+            state[i] += presses;
+        }
+
         auto result = std::numeric_limits<uint64_t>::max();
         while (true)
         {
             // Recurse
-            if (index < buttons.size() - 1)
+            if (button_index < buttons.size() - 1)
             {
-                const auto rec_result = count_joltages_rec(joltage_requirements, buttons, state, index + 1);
+                const auto rec_result = count_joltages_rec(joltage_requirements, buttons, state, button_index + 1);
                 if (rec_result != std::numeric_limits<uint64_t>::max())
                 {
-                    result = std::min(result, presses + rec_result);
+                    return std::min(result, presses + rec_result);
                 }
             }
 
-            for (const auto i : buttons[index])
+            // Unpress the button
+            for (const auto i : buttons[button_index])
             {
-                ++state[i];
+                --state[i];
 
                 // Check if we exceeded the requirements
-                if (state[i] > joltage_requirements[i])
+                if (state[i] == 0)
                 {
-                    return result;
+                    return std::numeric_limits<uint64_t>::max();
                 }
             }
 
-            ++presses;
+            --presses;
 
             // Check if we are done
             if (state == joltage_requirements)
@@ -86,9 +110,9 @@ namespace aoc::day10
         auto file = load_input_file(2025, 10, is_test);
 
         auto result_p1 = 0ull;
-        auto result_p2 = 0ull;
 
         auto line = std::string();
+        auto futures = std::vector<std::future<uint64_t>>();
         while (std::getline(file, line))
         {
             auto pos = line.begin();
@@ -137,9 +161,29 @@ namespace aoc::day10
             }
             consume_char(pos, line.end());
 
+            // Calculate part 1
             result_p1 += count_presses(indicators, button_wirings);
-            result_p2 += count_joltages(joltage_reqs, button_wirings);
+
+            // Sort button wirings by size, should be a bit faster
+            std::ranges::sort(button_wirings, [](const auto& lhs, const auto& rhs) { return lhs.size() < rhs.size(); });
+
+            // Calculate part 2 in parallel
+            auto future = std::async(count_joltages, joltage_reqs, button_wirings);
+            futures.push_back(std::move(future));
         }
+
+        // Accumulate results from async tasks
+        auto num_finished = 0ull;
+        const auto future_results = futures |
+            std::views::transform(
+                                        [&](auto&& future)
+                                        {
+                                            future.wait();
+                                            ++num_finished;
+                                            std::cout << std::format("Finished {}/{} tasks", num_finished, futures.size()) << std::endl;
+                                            return future.get();
+                                        });
+        const auto result_p2 = std::accumulate(future_results.begin(), future_results.end(), 0ull);
 
         return std::make_tuple(result_p1, result_p2);
     }
